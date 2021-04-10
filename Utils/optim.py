@@ -5,18 +5,24 @@
 # Tool :PyCharm
 import random
 import numpy as np
-from Utils import Mean_Square_Error
+from Utils import Mean_Square_Error, class_cov, class_means
 import matplotlib.pyplot as plt
 
 
 class GD(object):
+    """
+      Gradient Descent
+      梯度下降算法
+
+    """
+
     def __init__(self, x, y, fn, cost_fn=Mean_Square_Error, lr=1e-3, max_iter=50000, epsilon=1e-7, verbose=True):
         self.x = x
         self.y = y
         self.fn = fn
         self.theta_nums = x.shape[1]
         self.sample_nums = x.shape[0]
-        self.theta = np.zeros(self.theta_nums)#np.random.random(self.theta_nums)
+        self.theta = np.zeros(self.theta_nums)  # np.random.random(self.theta_nums)
         self.grad = np.zeros(self.theta_nums)
         self.cost_fn = cost_fn
         self.max_iter = max_iter
@@ -43,7 +49,7 @@ class GD(object):
     def step(self):
         previous_cost = 0
         iters = 0
-        thera_list= np.array([self.theta])
+        thera_list = np.array([self.theta])
         while iters < self.max_iter:
             iters += 1
             self.grad = self.grad_cal()
@@ -60,7 +66,7 @@ class GD(object):
 
         if self.verbose:
             print("finall :theta :%s " % (self.theta))
-        return self.theta,thera_list
+        return self.theta, thera_list
 
 
 class SGD(GD):
@@ -116,9 +122,40 @@ class mini_batch_SGD(SGD):
     # 计算损失
 
     def cost_cal(self):
-        y_pre = self.fn(self.x[self.idx, :],self.theta)
+        y_pre = self.fn(self.x[self.idx, :], self.theta)
         return self.cost_fn(self.batch, y_pre, self.y[self.idx])
 
+
+class LDA():
+    """
+        线性判别分析
+        Linear Discriminant Analysis
+    """
+
+    def __init__(self, X, y):
+        self.X = X
+        self.y = y
+        self.w = None
+
+    def fit(self, X, y):
+        conv = class_cov(X, y)
+        S_w = np.nansum(conv, axis=0)
+        mean_class = class_means(X, y)
+        mean_diff = np.atleast_1d(mean_class[0] - mean_class[1])
+
+        # 对类内散度矩阵进行奇异值分解
+        U, S, V = np.linalg.svd(S_w)
+        # 计算类内散度矩阵的逆
+        Sw_ = np.dot(np.dot(V.T, np.linalg.pinv(S)), U.T)
+        # 计算w
+        self.w = Sw_.dot(mean_diff)
+
+        # 对数据进行向量转换
+
+    def transform(self, X, y):
+        self.fit(X, y)
+        X_transform = X.dot(self.w)
+        return X_transform
 
 if __name__ == '__main__':
     print(np.zeros(3))
