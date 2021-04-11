@@ -7,6 +7,7 @@
 import numpy
 import pandas as pd
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.preprocessing import LabelEncoder
 from Utils import LDA
@@ -18,6 +19,33 @@ le = LabelEncoder()
 y = le.fit_transform(y)
 
 lda = LDA()
-x_lda = lda.fit_transform(x,y,n_component=2)
+x_lda = lda.fit_transform(x,y,n_component=1)
 
-print(x_lda.shape)
+plt.figure(1)
+for label in [0,1,2]:
+    x_l = x_lda[y==label,:]
+    plt.scatter(x_l[:,0],x_l[:,0])
+plt.show()
+#
+# fig = plt.figure(2)
+# ax = Axes3D(fig)
+# for label in [0,1,2]:
+#     x_l = x_lda[y==label,:]
+#     ax.scatter(x_l[:,0],x_l[:,1],x_l[:,2])
+# plt.show()
+
+
+# sk_lda = LinearDiscriminantAnalysis(n_components=1)
+# sk_lda_x  = sk_lda.fit_transform(x,y)
+# plt.figure(3)
+# for label in [0,1,2]:
+#     x_l = sk_lda_x[y==label,:]
+#     plt.scatter(x_l[:,0],x_l[:,0])
+# plt.show()
+
+# fig = plt.figure(4)
+# ax = Axes3D(fig)
+# for label in [0,1,2]:
+#     x_l = sk_lda_x[y==label,:]
+#     ax.scatter(x_l[:,0],x_l[:,1],x_l[:,2])
+# plt.show()

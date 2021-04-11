@@ -45,7 +45,7 @@
     ![gd2_theta](result_Gradient_Descent/sgd2_theta.png)
     ![gd2_theta](result_Gradient_Descent/mini_batch_sgd2_theta.png)
     
-- [TODO:]线性判别分析LDA(Utils.optim)
+- 线性判别分析LDA(效果图是调用sklearn的lda,实现的lda见Utils.optim)
     ![lda1](LDA/lda1.png)
     ![lda2](LDA/lda2.png)
     ![lda3](LDA/lda3.png)
