@@ -5,5 +5,5 @@
 # Tool :PyCharm
 
 from .cost_fn import *
-from .optim import *
 from .functions import *
+from .optim import *

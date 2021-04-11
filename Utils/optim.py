@@ -5,7 +5,7 @@
 # Tool :PyCharm
 import random
 import numpy as np
-from Utils import Mean_Square_Error, class_cov, class_means
+from Utils import Mean_Square_Error, class_means, class_cov
 import matplotlib.pyplot as plt
 
 
@@ -126,36 +126,50 @@ class mini_batch_SGD(SGD):
         return self.cost_fn(self.batch, y_pre, self.y[self.idx])
 
 
-class LDA():
+class LDA(object):
     """
         线性判别分析
         Linear Discriminant Analysis
     """
 
-    def __init__(self, X, y):
-        self.X = X
-        self.y = y
+    def __init__(self):
         self.w = None
 
-    def fit(self, X, y):
-        conv = class_cov(X, y)
-        S_w = np.nansum(conv, axis=0)
-        mean_class = class_means(X, y)
-        mean_diff = np.atleast_1d(mean_class[0] - mean_class[1])
+    def fit(self, X, y, n_component=None):
 
-        # 对类内散度矩阵进行奇异值分解
-        U, S, V = np.linalg.svd(S_w)
-        # 计算类内散度矩阵的逆
-        Sw_ = np.dot(np.dot(V.T, np.linalg.pinv(S)), U.T)
-        # 计算w
-        self.w = Sw_.dot(mean_diff)
+        X = np.array(X)
+        y = np.array(y)
+        classes = np.unique(y)
+        num_classes = len(classes)
+        n_components = num_classes if n_component is None else n_component
 
-        # 对数据进行向量转换
+        mean_classes = class_means(X, y)
+        mean_all = np.mean(mean_classes, axis=0)
+        s_w = np.zeros((X.shape[1], X.shape[1]))
+        for idx, c in enumerate(classes):
+            x_c = X[y == c, :]
+            s_w += np.dot((x_c - mean_classes[idx]).T, (x_c - mean_classes[idx]))
 
-    def transform(self, X, y):
-        self.fit(X, y)
-        X_transform = X.dot(self.w)
-        return X_transform
+        s_b = np.zeros((mean_classes.shape[1], mean_classes.shape[1]))
+        for idx, c in enumerate(classes):
+            mean_c = mean_classes[idx]
+            num_c = len(X[y == c, :])
+            s_b += num_c * np.dot((mean_c - mean_all).T, (mean_c - mean_all))
+
+        # 计算S_w^{-1} S_b的特征值和特征矩阵
+        eig_vals, eig_vecs = np.linalg.eig(np.linalg.inv(s_w).dot(s_b))
+        sorted_indices = np.argsort(eig_vals)
+        # 提取前k个特征向量
+        self.w = eig_vecs[:, sorted_indices[:-n_components - 1:-1]]
+        return self
+
+    def transform(self, x):
+        return np.dot(x, self.w)
+
+    def fit_transform(self, x, y, n_component=None):
+        self.fit(x, y, n_component)
+        return self.transform(x)
+
 
 if __name__ == '__main__':
     print(np.zeros(3))

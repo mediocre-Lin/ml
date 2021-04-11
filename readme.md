@@ -25,6 +25,10 @@
             It contains 100 objects. The images of each objects were taken 5 degrees apart as the object is rotated on a turntable and each object has 72 images. The size of each image is 32x 32 pixels, with 256 grey levels per pixel. Thus, each image is represented by a 1024-dimensional vector. Sample images
     
             contains variables 'fea' and 'gnd'. Each row of 'fea' is a sample; 'gnd' is the label.
+    5. iris.csv [下载链接](http://archive.ics.uci.edu/ml/datasets/iris) 
+    
+            This is perhaps the best known database to be found in the pattern recognition literature. Fisher's paper is a classic in the field and is referenced frequently to this day. (See Duda & Hart, for example.) 
+            The data set contains 3 classes of 50 instances each, where each class refers to a type of iris plant. One class is linearly separable from the other 2; the latter are NOT linearly separable from each other
 
 - 梯度下降算法:(Utils.optim)
     
@@ -40,11 +44,16 @@
     ![gd2_theta](result_Gradient_Descent/gd2_theta.png)
     ![gd2_theta](result_Gradient_Descent/sgd2_theta.png)
     ![gd2_theta](result_Gradient_Descent/mini_batch_sgd2_theta.png)
+    
 - [TODO:]线性判别分析LDA(Utils.optim)
     ![lda1](LDA/lda1.png)
     ![lda2](LDA/lda2.png)
     ![lda3](LDA/lda3.png)
     ![lda4](LDA/lda4.png)
+    
+- [TODO:]决策树(Utils.optim)
+
 - 引用:
 
  1. http://www.cad.zju.edu.cn/home/dengcai/Data/MLData.html
+ 2. http://archive.ics.uci.edu/ml/datasets/iris
