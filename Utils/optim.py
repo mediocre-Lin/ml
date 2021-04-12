@@ -5,8 +5,56 @@
 # Tool :PyCharm
 import random
 import numpy as np
-from Utils import Mean_Square_Error, class_means, class_cov
+from Utils import Mean_Square_Error
 import matplotlib.pyplot as plt
+import sys
+sys.setrecursionlimit(10000)
+
+
+def class_means(X, y):
+    """
+        计算各类的均值
+
+    Parameters
+    ----------
+    X : array-like of shape (n_samples, n_features)
+        Input data.
+
+    y : array-like of shape (n_samples,) or (n_samples, n_targets)
+        Target values.
+
+    Returns
+    -------
+    means : array-like of shape (n_classes, n_features)
+        Class means.
+    """
+    classes, y = np.unique(y, return_inverse=True)
+    cnt = np.bincount(y)
+    means = np.zeros(shape=(len(classes), X.shape[1]))
+    np.add.at(means, y, X)
+    means /= cnt[:, None]
+    return means
+
+
+def _conv(X):
+    num = X.shape[0]
+    x = X - np.nanmean(X, axis=0)
+    return 1 / num * np.matmul(x.T, x)
+
+
+def class_cov(X, y):
+    """
+      计算各类别的协方差矩阵
+    :param X: x变量
+    :param Y: y变量
+    :return: 协方差矩阵
+    """
+    classes = np.unique(y)
+    cov = np.zeros(shape=(len(classes), X.shape[1], X.shape[1]))
+    for idx, group in enumerate(classes):
+        X_g = X[y == group, :]
+        cov[idx] = _conv(X_g)
+    return cov
 
 
 class GD(object):
@@ -171,5 +219,82 @@ class LDA(object):
         return self.transform(x)
 
 
+def _cal_ent(y):
+    c_k = np.bincount(y)
+    p_k = c_k / len(y)
+    p_k = p_k[p_k!=0]
+    return -sum(p_k * np.log2(p_k))
+
+
+def _cal_ent_v(x, y):
+    attr_x = np.unique(x)
+    label = np.unique(y)
+    ent_attr = 0.0
+
+    for attr in attr_x:
+        num_attr = sum(x == attr)
+        for l in label:
+            d_attr = x[(x == attr) & (y == l)]
+            p_attr = len(d_attr) / num_attr
+            ent_attr += 0 if p_attr == 0 else (num_attr / len(y)) * p_attr * (np.log2(len(d_attr) / num_attr))
+    return ent_attr
+
+
+def info_gain(x, y):
+    Ent_D = _cal_ent(y)
+    gain_feas = [Ent_D + _cal_ent_v(x[:, fea], y) for fea in range(x.shape[1])]
+    return np.array(gain_feas)
+
+def cal_purity(x):
+    count = np.bincount(x)
+    return np.max(count)/sum(count)
+
+
+def split(x, y, target,note=''):
+    tar_x = x[:,target]
+    branch_fea = np.unique(tar_x)
+    new_x = []
+    for i, fea in enumerate(branch_fea):
+            new_x.append( {'fea':np.array(x[tar_x == fea, :]),'label':y[tar_x==fea],'purity':cal_purity(y[tar_x==fea]) ,'note':note+'fea '+str(target)+':'+str(fea)+','})
+    return new_x
+
+
+def id_3(data, max_info_gain_list):
+    for idx, data_i in enumerate(data):
+        if  data_i['purity'] != 1 or sum(max_info_gain_list)==0:
+            info_gains = info_gain(data_i['fea'], data_i['label']) * max_info_gain_list
+            max_info_gain = np.argmax(info_gains)
+            max_info_gain_list[max_info_gain] = False
+            data[idx] = split(data_i['fea'], data_i['label'], max_info_gain,data_i['note'])
+            id_3(data[idx],max_info_gain_list)
+    return data
+
+class Decison_Tree(object):
+    """
+        决策树(Decision Tree)
+
+    """
+
+    def __init__(self, decision_type='id3'):
+        self.type = decision_type
+        self.result = None
+
+    def fit(self, x, y):
+        if self.type == 'id3':
+            max_info_gain_list=[True for i in range(x.shape[1])]
+            info_gains = info_gain(x, y)
+            max_info_gain = np.argmax(info_gains)
+            max_info_gain_list[max_info_gain]=False
+            self.result = split(x,y,max_info_gain)
+            self.result = id_3(self.result,max_info_gain_list)
+            return self.result
+
+    def predict(self):
+        pass
+
+    def print(self):
+        pass
+
+
 if __name__ == '__main__':
-    print(np.zeros(3))
+    print(sum([False,True]))
