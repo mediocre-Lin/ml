@@ -250,12 +250,12 @@ def cal_purity(x):
     return np.max(count)/sum(count)
 
 
-def split(x, y, target,note=''):
+def split(x, y, target,note='-->'):
     tar_x = x[:,target]
     branch_fea = np.unique(tar_x)
     new_x = []
     for i, fea in enumerate(branch_fea):
-            new_x.append( {'fea':np.array(x[tar_x == fea, :]),'label':y[tar_x==fea],'purity':cal_purity(y[tar_x==fea]) ,'note':note+'fea '+str(target)+':'+str(fea)+','})
+            new_x.append( {'fea':np.array(x[tar_x == fea, :]),'label':y[tar_x==fea],'purity':cal_purity(y[tar_x==fea]) ,'note':note+'fea_'+str(target)+' = '+str(fea)+'-->'})
     return new_x
 
 
