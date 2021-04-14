@@ -8,6 +8,7 @@ import numpy as np
 from Utils import Mean_Square_Error
 import matplotlib.pyplot as plt
 import sys
+
 sys.setrecursionlimit(10000)
 
 
@@ -222,7 +223,7 @@ class LDA(object):
 def _cal_ent(y):
     c_k = np.bincount(y)
     p_k = c_k / len(y)
-    p_k = p_k[p_k!=0]
+    p_k = p_k[p_k != 0]
     return -sum(p_k * np.log2(p_k))
 
 
@@ -245,30 +246,139 @@ def info_gain(x, y):
     gain_feas = [Ent_D + _cal_ent_v(x[:, fea], y) for fea in range(x.shape[1])]
     return np.array(gain_feas)
 
+
 def cal_purity(x):
     count = np.bincount(x)
-    return np.max(count)/sum(count)
+    return np.max(count) / sum(count)
 
 
-def split(x, y, target,note='-->'):
-    tar_x = x[:,target]
-    branch_fea = np.unique(tar_x)
-    new_x = []
-    for i, fea in enumerate(branch_fea):
-            new_x.append( {'fea':np.array(x[tar_x == fea, :]),'label':y[tar_x==fea],'purity':cal_purity(y[tar_x==fea]) ,'note':note+'fea_'+str(target)+' = '+str(fea)+'-->'})
+def _iv(x, y):
+    attr_x = np.unique(x)
+    IV = 0.0
+
+    for attr in attr_x:
+        num_attr = sum(x == attr)
+        p_attr = (num_attr / len(y))
+        IV += 0.0 if p_attr == 0 else p_attr * (np.log2(p_attr))
+    return IV
+
+
+def gain_ratio(x, y):
+    Ent_D = _cal_ent(y)
+    gain_rat = [(Ent_D + _cal_ent_v(x[:, fea], y) / _iv(x[:, fea], y)) for fea in range(x.shape[1])]
+    return np.array(gain_rat)
+
+
+# CART
+
+def _cal_gini(x, y):
+    label = np.unique(y)
+    gini = 0.0
+    for k in label:
+        p_k = len(x[y == k]) / len(y)
+        gini += p_k ** 2
+    return 1 - gini
+
+
+def _cal_gini_index(x, y, attr):
+    x_selected = x == attr
+    gini_index = len(x[x_selected]) / len(y) * _cal_gini(x[x_selected], y[x_selected]) + len(x[~x_selected]) / len(
+        y) * _cal_gini(x[~x_selected], y[~x_selected])
+    return gini_index
+
+
+def cal_gini_index(x, y, attr_martix):
+    gini_index_martix = np.ones_like(attr_martix)
+    for row in range(attr_martix.shape[0]):
+        fea = x[:, row]
+        for col in range(attr_martix.shape[1]):
+            if attr_martix[row, col] == 1:
+                gini_index_martix[row, col] = _cal_gini_index(fea, y, col)
+    return gini_index_martix
+
+
+def _cal_reg_conv(y):
+    return sum(y ** 2 - len(y) * np.mean(y))
+
+
+def init_all_fea_attr(x):
+    attr_num = [len(np.unique(x[:, fea])) for fea in range(x.shape[1])]
+    attr_martix = np.zeros((x.shape[1], max(attr_num)))
+    for idx, num in enumerate(attr_num):
+        if num == 2:
+            attr_martix[idx, 0] = 1
+        else:
+            attr_martix[idx, :num] = 1
+    return attr_martix
+def adjust_att_martix(attr_matrix):
+    for i in range(attr_matrix.shape[0]):
+        if sum(attr_matrix[i,:])==2:
+            attr_matrix[i,np.argmax(attr_matrix[i,:])] =0
+    return attr_matrix
+def num2coordinate(num, shape):
+    return [int(num / shape[1]), num % shape[1]]
+
+
+def split(x, y, target='None', note='-->', type='gini', mini_gini=None):
+    if type == 'gini':
+        tar_x = x[:, mini_gini[0]]
+        new_x = []
+        new_x.append(
+            {'fea': np.array(x[tar_x == mini_gini[1], :]), 'label': y[tar_x == mini_gini[1]],
+             'purity': cal_purity(y[tar_x == mini_gini[1]]),
+             'note': note + 'fea_' + str(mini_gini[0]) + ' = ' + str(mini_gini[1]) + '-->'})
+        new_x.append(
+            {'fea': np.array(x[tar_x != mini_gini[1], :]), 'label': y[tar_x != mini_gini[1]],
+             'purity': cal_purity(y[tar_x != mini_gini[1]]),
+             'note': note + 'fea_' + str(mini_gini[0]) + ' != ' + str(mini_gini[1]) + '-->'})
+    else:
+        tar_x = x[:, target]
+        branch_fea = np.unique(tar_x)
+        new_x = []
+        for i, fea in enumerate(branch_fea):
+            new_x.append(
+                {'fea': np.array(x[tar_x == fea, :]), 'label': y[tar_x == fea], 'purity': cal_purity(y[tar_x == fea]),
+                 'note': note + 'fea_' + str(target) + ' = ' + str(fea) + '-->'})
+
     return new_x
 
 
-def id_3(data, max_info_gain_list):
+def id_3(data, max_info_gains_list):
     for idx, data_i in enumerate(data):
-        if  data_i['purity'] != 1 or sum(max_info_gain_list)==0:
+        max_info_gain_list = max_info_gains_list
+        if data_i['purity'] != 1 or sum(max_info_gain_list) == 0:
             info_gains = info_gain(data_i['fea'], data_i['label']) * max_info_gain_list
             max_info_gain = np.argmax(info_gains)
             max_info_gain_list[max_info_gain] = False
-            data[idx] = split(data_i['fea'], data_i['label'], max_info_gain,data_i['note'])
-            id_3(data[idx],max_info_gain_list)
+            data[idx] = split(data_i['fea'], data_i['label'], max_info_gain, data_i['note'])
+            id_3(data[idx], max_info_gain_list)
     return data
 
+
+def C4_5(data, max_gain_ratios_list):
+    for idx, data_i in enumerate(data):
+        max_gain_ratio_list = max_gain_ratios_list
+        if data_i['purity'] != 1 or sum(max_gain_ratio_list) == 0:
+            info_gains = info_gain(data_i['fea'], data_i['label']) * max_gain_ratio_list
+            gain_ratios = gain_ratio(data_i['fea'], data_i['label']) * info_gains > np.mean(info_gains)
+            max_gain_ratio = np.argmax(gain_ratios)
+            max_gain_ratio_list[max_gain_ratio] = False
+            data[idx] = split(data_i['fea'], data_i['label'], max_gain_ratio, data_i['note'])
+            C4_5(data[idx], max_gain_ratio_list)
+    return data
+
+
+def CART(data, attrs_martix):
+    for idx, data_i in enumerate(data):
+        attr_martix = attrs_martix
+        if data_i['purity'] != 1 and np.sum(attr_martix,axis=None) != 0:
+            gini_martix = cal_gini_index(data_i['fea'], data_i['label'], attr_martix)
+            min_gini = num2coordinate(np.argmin(gini_martix), gini_martix.shape)
+            data[idx] = split(data_i['fea'], data_i['label'], type='gini', mini_gini=min_gini,note=data_i['note'])
+            attr_martix[min_gini[0], min_gini[1]] = 0
+            attr_martix = adjust_att_martix(attr_matrix=attr_martix)
+            CART(data[idx], attr_martix)
+    return data
 class Decison_Tree(object):
     """
         决策树(Decision Tree)
@@ -281,14 +391,31 @@ class Decison_Tree(object):
 
     def fit(self, x, y):
         if self.type == 'id3':
-            max_info_gain_list=[True for i in range(x.shape[1])]
+            max_info_gain_list = [True for i in range(x.shape[1])]
             info_gains = info_gain(x, y)
             max_info_gain = np.argmax(info_gains)
-            max_info_gain_list[max_info_gain]=False
-            self.result = split(x,y,max_info_gain)
-            self.result = id_3(self.result,max_info_gain_list)
+            max_info_gain_list[max_info_gain] = False
+            self.result = split(x, y, max_info_gain)
+            self.result = id_3(self.result, max_info_gain_list)
             return self.result
-
+        elif self.type == 'C4_5':
+            max_gain_ratio_list = [True for i in range(x.shape[1])]
+            info_gains = info_gain(x, y)
+            gain_ratios = gain_ratio(x, y) * info_gains > np.mean(info_gains)
+            max_gain_ratio = np.argmax(gain_ratios)
+            max_gain_ratio_list[max_gain_ratio] = False
+            self.result = split(x, y, max_gain_ratio)
+            self.result = C4_5(self.result, max_gain_ratio_list)
+            return self.result
+        elif self.type == 'CART':
+            attr_martix = init_all_fea_attr(x)
+            gini_martix = cal_gini_index(x, y, attr_martix)
+            min_gini = num2coordinate(np.argmin(gini_martix), gini_martix.shape)
+            self.result = split(x, y, type='gini', mini_gini=min_gini)
+            attr_martix[min_gini[0],min_gini[1]] = 0
+            attr_martix = adjust_att_martix(attr_matrix=attr_martix)
+            CART(self.result,attr_martix)
+            return self.result
     def predict(self):
         pass
 
@@ -297,4 +424,4 @@ class Decison_Tree(object):
 
 
 if __name__ == '__main__':
-    print(sum([False,True]))
+    x = [[1, 2, 3], [1, 2]]
