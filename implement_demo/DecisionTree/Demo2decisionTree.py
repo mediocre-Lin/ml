@@ -22,5 +22,5 @@ for i in range(x.shape[1]):
         x[:,i] = le.fit_transform(x[:,i])
 print(x)
 print(y)
-dt = Decison_Tree("CART")
+dt = Decison_Tree("CART",task_type='regression')
 res = dt.fit(x,y)

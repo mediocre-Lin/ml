@@ -67,41 +67,33 @@ def _cal_gini(x, y):
     return 1 - gini
 
 
-def _cal_gini_index(x, y, attr):
-    x_selected = x == attr
-    gini_index = len(x[x_selected]) / len(y) * _cal_gini(x[x_selected], y[x_selected]) + len(x[~x_selected]) / len(
-        y) * _cal_gini(x[~x_selected], y[~x_selected])
-    return gini_index
+def _cal_index(x, y, attr,continuous_feas,type='classifier'):
+    if continuous_feas:
+        x_selected = x <= attr
+    else:
+        x_selected = x == attr
+    if type == 'classifier':
+        index = len(x[x_selected]) / len(y) * _cal_gini(x[x_selected], y[x_selected]) + len(x[~x_selected]) / len(
+            y) * _cal_gini(x[~x_selected], y[~x_selected])
+    else:
+        index = _reg_conv(y[x_selected]) + _reg_conv(y[~x_selected])
+    return index
 
 
-def cal_gini_index(x, y, attr_martix):
-    gini_index_martix = np.ones_like(attr_martix)
+def cal_split_index(x, y, attr_martix,continuous_feas,tree_type='classifier'):
+    gini_index_martix = np.zeros_like(attr_martix) + 1e3
     for row in range(attr_martix.shape[0]):
         fea = x[:, row]
         for col in range(attr_martix.shape[1]):
-            if attr_martix[row, col] == 1:
-                gini_index_martix[row, col] = _cal_gini_index(fea, y, col)
+            if attr_martix[row, col] != -1:
+                attr = attr_martix[row,col] if continuous_feas[row] else col
+                gini_index_martix[row, col] = _cal_index(fea, y, attr,continuous_feas[row],type=tree_type)
     return gini_index_martix
 
 
 def _reg_conv(y):
-    return sum(y ** 2 - len(y) * np.mean(y))
+    return np.sqrt(sum(y ** 2) - len(y) * np.mean(y)**2)
 
-
-def _cal_reg_conv(x, y, attr):
-    x_selected = x == attr
-    reg_conv = _reg_conv(y[x_selected])
-    return reg_conv
-
-
-def cal_reg_conv(x, y, attr_martix):
-    reg_conv_martix = np.ones_like(attr_martix)
-    for row in range(attr_martix.shape[0]):
-        fea = x[:, row]
-        for col in range(attr_martix.shape[1]):
-            if attr_martix[row, col] == 1:
-                reg_conv_martix[row, col] = _cal_reg_conv(fea, y, col)
-    return reg_conv_martix
 
 
 def init_all_fea_attr(x, numeric_fea):
@@ -111,7 +103,7 @@ def init_all_fea_attr(x, numeric_fea):
             attr_num.append(len(np.unique(x[:, fea])) - 1)
         else:
             attr_num.append(len(np.unique(x[:, fea])))
-    attr_martix = np.zeros((x.shape[1], max(attr_num)))
+    attr_martix = np.zeros((x.shape[1], max(attr_num)))-1
     for idx, num in enumerate(attr_num):
         if numeric_fea[idx]:
             attr_martix[idx, :] = continuous2dispersed(x[:, idx])
@@ -151,18 +143,32 @@ def continuous2dispersed(num_fea):
     return split_list
 
 
-def split(x, y, target='None', note='-->', type='gini', mini_gini=None):
+def split(x, y,attrs_martix, target='None', note='-->', type='gini',mini_gini=None,continuous_fea=False):
     if type == 'gini':
         tar_x = x[:, mini_gini[0]]
-        new_x = []
-        new_x.append(
-            {'fea': np.array(x[tar_x == mini_gini[1], :]), 'label': y[tar_x == mini_gini[1]],
-             'purity': cal_purity(y[tar_x == mini_gini[1]]),
-             'note': note + 'fea_' + str(mini_gini[0]) + ' = ' + str(mini_gini[1]) + '-->'})
-        new_x.append(
-            {'fea': np.array(x[tar_x != mini_gini[1], :]), 'label': y[tar_x != mini_gini[1]],
-             'purity': cal_purity(y[tar_x != mini_gini[1]]),
-             'note': note + 'fea_' + str(mini_gini[0]) + ' != ' + str(mini_gini[1]) + '-->'})
+        if continuous_fea:
+            new_x = []
+            val = attrs_martix[mini_gini[0],mini_gini[1]]
+            seleted = tar_x <= val
+            new_x.append(
+                {'fea': np.array(x[seleted]), 'label': y[seleted],
+                 'purity': cal_purity(y[seleted]),
+                 'note': note + 'fea_' + str(mini_gini[0]) + ' <= ' + str(val) + '-->'})
+            new_x.append(
+                {'fea': np.array(x[~seleted]), 'label': y[~seleted],
+                 'purity': cal_purity(y[~seleted]),
+                 'note': note + 'fea_' + str(mini_gini[0]) + '> ' + str(val) + '-->'})
+        else:
+            new_x = []
+            new_x.append(
+                {'fea': np.array(x[tar_x == mini_gini[1], :]), 'label': y[tar_x == mini_gini[1]],
+                 'purity': cal_purity(y[tar_x == mini_gini[1]]),
+                 'note': note + 'fea_' + str(mini_gini[0]) + ' = ' + str(mini_gini[1]) + '-->'})
+            new_x.append(
+                {'fea': np.array(x[tar_x != mini_gini[1], :]), 'label': y[tar_x != mini_gini[1]],
+                 'purity': cal_purity(y[tar_x != mini_gini[1]]),
+                 'note': note + 'fea_' + str(mini_gini[0]) + ' != ' + str(mini_gini[1]) + '-->'})
+
     else:
         tar_x = x[:, target]
         branch_fea = np.unique(tar_x)
@@ -200,17 +206,17 @@ def C4_5(data, max_gain_ratios_list):
     return data
 
 
-def CART(data, attrs_martix):
-    for idx, data_i in enumerate(data):
-        attr_martix = attrs_martix
-        if data_i['purity'] != 1 and np.sum(attr_martix, axis=None) != 0:
-            gini_martix = cal_gini_index(data_i['fea'], data_i['label'], attr_martix)
-            min_gini = num2coordinate(np.argmin(gini_martix), gini_martix.shape)
-            data[idx] = split(data_i['fea'], data_i['label'], type='gini', mini_gini=min_gini, note=data_i['note'])
-            attr_martix[min_gini[0], min_gini[1]] = 0
-            attr_martix = adjust_att_martix(attr_matrix=attr_martix)
-            CART(data[idx], attr_martix)
-    return data
+# def CART(data, attrs_martix):
+#     for idx, data_i in enumerate(data):
+#         attr_martix = attrs_martix
+#         if data_i['purity'] != 1 and np.sum(attr_martix, axis=None) != 0:
+#             gini_martix = cal_split_index(data_i['fea'], data_i['label'], attr_martix)
+#             min_gini = num2coordinate(np.argmin(gini_martix), gini_martix.shape)
+#             # data[idx] = split(data_i['fea'], data_i['label'], type='gini', mini_gini=min_gini, note=data_i['note')
+#             # attr_martix[min_gini[0], min_gini[1]] = 0
+#             # attr_martix = adjust_att_martix(attr_matrix=attr_martix)
+#             # CART(data[idx], attr_martix)
+#     return data
 
 
 class Decison_Tree(object):
@@ -223,6 +229,7 @@ class Decison_Tree(object):
         self.type = decision_type
         self.result = None
         self.numeric_fea = []
+        self.task_type = task_type
 
     def fit(self, x, y):
         if self.type == 'id3':
@@ -245,11 +252,11 @@ class Decison_Tree(object):
         elif self.type == 'CART':
             self.numeric_fea = [continuous_fea_check(x[:, fea]) for fea in range(x.shape[1])]
             attr_martix = init_all_fea_attr(x, self.numeric_fea)
-            print(attr_martix)
-            # gini_martix = cal_gini_index(x, y, attr_martix)
-            # min_gini = num2coordinate(np.argmin(gini_martix), gini_martix.shape)
-            # self.result = split(x, y, type='gini', mini_gini=min_gini)
-            # attr_martix[min_gini[0], min_gini[1]] = 0
+            gini_martix = cal_split_index(x, y, attr_martix,self.numeric_fea,self.task_type)
+            min_gini = num2coordinate(np.argmin(gini_martix), gini_martix.shape)
+            self.result = split(x, y, type='gini', mini_gini=min_gini,attrs_martix =attr_martix,continuous_fea=self.numeric_fea[min_gini[0]])
+            print(self.result)
+            # attr_martix[min_gini[0], min_gini[1]] = -1
             # attr_martix = adjust_att_martix(attr_matrix=attr_martix)
             # CART(self.result, attr_martix)
             # return self.result
