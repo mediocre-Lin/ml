@@ -30,7 +30,7 @@
             This is perhaps the best known database to be found in the pattern recognition literature. Fisher's paper is a classic in the field and is referenced frequently to this day. (See Duda & Hart, for example.) 
             The data set contains 3 classes of 50 instances each, where each class refers to a type of iris plant. One class is linearly separable from the other 2; the latter are NOT linearly separable from each other
 
-- 梯度下降算法:(Utils.optim.GD/SGD/mini_batch_SGD)
+- 梯度下降算法:(Optim.tree.gradient_descent)
     
     1. 全批量梯度下降(Gradient Descent)
         
@@ -38,21 +38,21 @@
     
     3. 小批量随机梯度下降(mini-batch stochastic Gradient Descent)
 
-    ![gd1](result_Gradient_Descent/gd1.png)
-    ![gd1_theta](result_Gradient_Descent/gd1_theta.png)
-    ![gd2](result_Gradient_Descent/gd2.png)
-    ![gd2_theta](result_Gradient_Descent/gd2_theta.png)
-    ![gd2_theta](result_Gradient_Descent/sgd2_theta.png)
-    ![gd2_theta](result_Gradient_Descent/mini_batch_sgd2_theta.png)
+    ![gd1](implement_demo/result_Gradient_Descent/gd1.png)
+    ![gd1_theta](implement_demo/result_Gradient_Descent/gd1_theta.png)
+    ![gd2](implement_demo/result_Gradient_Descent/gd2.png)
+    ![gd2_theta](implement_demo/result_Gradient_Descent/gd2_theta.png)
+    ![gd2_theta](implement_demo/result_Gradient_Descent/sgd2_theta.png)
+    ![gd2_theta](implement_demo/result_Gradient_Descent/mini_batch_sgd2_theta.png)
     
-- 线性判别分析LDA(效果图是调用sklearn的lda,实现的lda见Utils.optim.LDA)
-    ![lda1](LDA/lda1.png)
-    ![lda2](LDA/lda2.png)
-    ![lda3](LDA/lda3.png)
-    ![lda4](LDA/lda4.png)
+- 线性判别分析LDA(效果图是调用sklearn的lda,实现的lda见Optim.lda)
+    ![lda1](implement_demo/LDA/lda1.png)
+    ![lda2](implement_demo/LDA/lda2.png)
+    ![lda3](implement_demo/LDA/lda3.png)
+    ![lda4](implement_demo/LDA/lda4.png)
     
-- [TODO:]决策树(Utils.optim.DecisionTree)
-    ![demo_id3](DecisionTree/result_demo.jpg)
+- [TODO:]决策树(Optim.tree.decison_tree)
+    ![demo_id3](implement_demo/DecisionTree/result_demo.jpg)
 
 - 引用:
 

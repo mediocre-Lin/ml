@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import LabelEncoder
-from Utils import Decison_Tree
+from Optim.tree import Decison_Tree
 from sklearn import tree
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.feature_extraction import DictVectorizer

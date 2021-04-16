@@ -10,9 +10,9 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.preprocessing import LabelEncoder
-from Utils import LDA
+from Optim.lda import LDA
 
-iris_data = pd.read_csv('../Data/iris.csv')
+iris_data = pd.read_csv('../../Data/iris.csv')
 x = iris_data.iloc[:,1:-1].values
 y = iris_data.iloc[:,-1].values
 le = LabelEncoder()

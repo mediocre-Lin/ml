@@ -7,7 +7,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # 空间三维画图
-from Utils import GD, SGD, mini_batch_SGD
+from Optim.gradient_descent import GD, SGD, mini_batch_SGD
 
 
 def fn1(x, theta):

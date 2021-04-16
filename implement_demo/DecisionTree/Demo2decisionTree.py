@@ -9,21 +9,18 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import LabelEncoder
-from Utils import Decison_Tree
+from Optim.tree import Decison_Tree
 
-demo_data = pd.read_csv('../Data/demo_decision_Tree2.csv',encoding='utf-8')
-print(demo_data)
+demo_data = pd.read_csv('../../Data/demo2.csv', encoding='gbk')
 x = demo_data.iloc[:,:-1].values
 
 y = demo_data.iloc[:,-1].values
 
 le = LabelEncoder()
 for i in range(x.shape[1]):
-    if i != 2:
+    if i != 0:
         x[:,i] = le.fit_transform(x[:,i])
-y = le.fit_transform(y)
+print(x)
+print(y)
 dt = Decison_Tree("CART")
-res = dt.fit(x[:,:-1],y)
-for i in range(len(res)):
-    print(res[i])
-    print()
+res = dt.fit(x,y)

@@ -57,7 +57,7 @@ def plot_LDA(converted_X,y):
 
 
 
-MNIST_path = '../Data/MNIST.mat'
+MNIST_path = '../../Data/MNIST.mat'
 MNIST_fea,MNIST_label = load_mat_data(MNIST_path)
 MNIST_fea = np.array(MNIST_fea)
 # MNIST_fea = (MNIST_fea - MNIST_fea.mean()) / MNIST_fea.std()
