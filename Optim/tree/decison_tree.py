@@ -154,21 +154,21 @@ def split(x, y, attrs_martix, target='None', note='-->', type='gini', mini_gini=
             seleted = tar_x <= val
             new_x.append(
                 {'fea': np.array(x[seleted]), 'label': y[seleted],
-                 'purity': cal_purity(y[seleted]),
+                 'purity': _reg_conv(y[seleted]),
                  'note': note + 'fea_' + str(mini_gini[0]) + ' <= ' + str(val) + '-->'})
             new_x.append(
                 {'fea': np.array(x[~seleted]), 'label': y[~seleted],
-                 'purity': cal_purity(y[~seleted]),
+                 'purity': _reg_conv(y[~seleted]),
                  'note': note + 'fea_' + str(mini_gini[0]) + '> ' + str(val) + '-->'})
         else:
             new_x = []
             new_x.append(
                 {'fea': np.array(x[tar_x == mini_gini[1], :]), 'label': y[tar_x == mini_gini[1]],
-                 'purity': cal_purity(y[tar_x == mini_gini[1]]),
+                 'purity': _reg_conv(y[tar_x == mini_gini[1]]),
                  'note': note + 'fea_' + str(mini_gini[0]) + ' = ' + str(mini_gini[1]) + '-->'})
             new_x.append(
                 {'fea': np.array(x[tar_x != mini_gini[1], :]), 'label': y[tar_x != mini_gini[1]],
-                 'purity': cal_purity(y[tar_x != mini_gini[1]]),
+                 'purity': _reg_conv(y[tar_x != mini_gini[1]]),
                  'note': note + 'fea_' + str(mini_gini[0]) + ' != ' + str(mini_gini[1]) + '-->'})
 
     else:
@@ -211,7 +211,8 @@ def C4_5(data, max_gain_ratios_list):
 def CART(data, attrs_martix, numeric_fea, task_type):
     for idx, data_i in enumerate(data):
         attr_martix = attrs_martix
-        if data_i['purity'] != 1 and np.sum(-1 != attr_martix) != 0:
+        # and data_i['purity'] != 1
+        if len(data_i['fea']) and data_i['purity']!=0 and np.sum(-1 != attr_martix) != 0:
             gini_martix = cal_split_index(data_i['fea'], data_i['label'], attr_martix, numeric_fea, task_type)
             min_gini = num2coordinate(np.argmin(gini_martix), gini_martix.shape)
             data[idx] = split(data_i['fea'], data_i['label'], type='gini', mini_gini=min_gini, attrs_martix=attr_martix,
@@ -255,6 +256,7 @@ class Decison_Tree(object):
         elif self.type == 'CART':
             self.numeric_fea = [continuous_fea_check(x[:, fea]) for fea in range(x.shape[1])]
             attr_martix = init_all_fea_attr(x, self.numeric_fea)
+            print(attr_martix)
             gini_martix = cal_split_index(x, y, attr_martix, self.numeric_fea, self.task_type)
             min_gini = num2coordinate(np.argmin(gini_martix), gini_martix.shape)
             self.result = split(x, y, type='gini', mini_gini=min_gini, attrs_martix=attr_martix,
@@ -262,8 +264,7 @@ class Decison_Tree(object):
             attr_martix[min_gini[0], min_gini[1]] = -1
             attr_martix = adjust_att_martix(attr_matrix=attr_martix)
             CART(self.result, attr_martix, self.numeric_fea, self.task_type)
-            print(self.result)
-            # return self.result
+            return np.array(self.result)
 
     def predict(self):
         pass
