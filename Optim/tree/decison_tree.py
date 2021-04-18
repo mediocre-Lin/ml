@@ -7,6 +7,7 @@
 import numpy as np
 
 
+# ID3
 def _cal_ent(y):
     c_k = np.bincount(y)
     p_k = c_k / len(y)
@@ -34,20 +35,13 @@ def info_gain(x, y):
     return np.array(gain_feas)
 
 
-def cal_purity(x):
-    if len(x) == 0:
-        return 0
-    else:
-        count = np.bincount(x)
-        return np.max(count) / sum(count)
-
-
+# C4.5
 def _iv(x, y):
     attr_x = np.unique(x)
     IV = 0.0
 
     for attr in attr_x:
-        num_attr = sum(x == attr)
+        num_attr = sum(attr == x)
         p_attr = (num_attr / len(y))
         IV += 0.0 if p_attr == 0 else p_attr * (np.log2(p_attr))
     return IV
@@ -70,11 +64,12 @@ def _cal_gini(x, y):
     return 1 - gini
 
 
+def _reg_conv(y):
+    return np.sqrt(sum(y ** 2) - len(y) * np.mean(y) ** 2)
+
+
 def _cal_index(x, y, attr, continuous_feas, type='classifier'):
-    if continuous_feas:
-        x_selected = x <= attr
-    else:
-        x_selected = x == attr
+    x_selected = x <= attr if continuous_feas else x_selected = x == attr
     if type == 'classifier':
         index = len(x[x_selected]) / len(y) * _cal_gini(x[x_selected], y[x_selected]) + len(x[~x_selected]) / len(
             y) * _cal_gini(x[~x_selected], y[~x_selected])
@@ -92,10 +87,6 @@ def cal_split_index(x, y, attr_martix, continuous_feas, tree_type='classifier'):
                 attr = attr_martix[row, col] if continuous_feas[row] else col
                 gini_index_martix[row, col] = _cal_index(fea, y, attr, continuous_feas[row], type=tree_type)
     return gini_index_martix
-
-
-def _reg_conv(y):
-    return np.sqrt(sum(y ** 2) - len(y) * np.mean(y) ** 2)
 
 
 def init_all_fea_attr(x, numeric_fea):
@@ -126,6 +117,8 @@ def adjust_att_martix(attr_matrix):
 
 def continuous_fea_check(x):
     fea_max = max(x)
+    if isinstance(fea_max, str):
+        return False
     if int(fea_max) != fea_max:
         return True
     else:
@@ -145,7 +138,15 @@ def continuous2dispersed(num_fea):
     return split_list
 
 
-def split(x, y, attrs_martix, target='None', note='-->', type='gini', mini_gini=None, continuous_fea=False):
+def cal_purity(x):
+    if len(x) == 0:
+        return 0
+    else:
+        count = np.bincount(x)
+        return np.max(count) / sum(count)
+
+
+def split(x, y, attrs_martix=None, target=None, note='-->', tree_type='CART', mini_gini=None, continuous_fea=False):
     if type == 'gini':
         tar_x = x[:, mini_gini[0]]
         if continuous_fea:
@@ -186,11 +187,11 @@ def split(x, y, attrs_martix, target='None', note='-->', type='gini', mini_gini=
 def id_3(data, max_info_gains_list):
     for idx, data_i in enumerate(data):
         max_info_gain_list = max_info_gains_list
-        if data_i['purity'] != 1 or sum(max_info_gain_list) == 0:
+        if data_i['purity'] != 1 and sum(max_info_gain_list) != 0:
             info_gains = info_gain(data_i['fea'], data_i['label']) * max_info_gain_list
             max_info_gain = np.argmax(info_gains)
             max_info_gain_list[max_info_gain] = False
-            data[idx] = split(data_i['fea'], data_i['label'], max_info_gain, data_i['note'])
+            data[idx] = split(data_i['fea'], data_i['label'], target=max_info_gain, note=data_i['note'], type='ent')
             id_3(data[idx], max_info_gain_list)
     return data
 
@@ -198,12 +199,12 @@ def id_3(data, max_info_gains_list):
 def C4_5(data, max_gain_ratios_list):
     for idx, data_i in enumerate(data):
         max_gain_ratio_list = max_gain_ratios_list
-        if data_i['purity'] != 1 or sum(max_gain_ratio_list) == 0:
-            info_gains = info_gain(data_i['fea'], data_i['label']) * max_gain_ratio_list
-            gain_ratios = gain_ratio(data_i['fea'], data_i['label']) * info_gains > np.mean(info_gains)
+        if data_i['purity'] != 1 and sum(max_gain_ratio_list) == 0:
+            info_gains = (info_gain(data_i['fea'], data_i['label']) * max_gain_ratio_list) > np.mean(info_gains)
+            gain_ratios = gain_ratio(data_i['fea'], data_i['label']) * info_gains
             max_gain_ratio = np.argmax(gain_ratios)
             max_gain_ratio_list[max_gain_ratio] = False
-            data[idx] = split(data_i['fea'], data_i['label'], max_gain_ratio, data_i['note'])
+            data[idx] = split(data_i['fea'], data_i['label'], target=max_gain_ratio, note=data_i['note'], type='ent')
             C4_5(data[idx], max_gain_ratio_list)
     return data
 
@@ -212,15 +213,19 @@ def CART(data, attrs_martix, numeric_fea, task_type):
     for idx, data_i in enumerate(data):
         attr_martix = attrs_martix
         # and data_i['purity'] != 1
-        if len(data_i['fea']) and data_i['purity']!=0 and np.sum(-1 != attr_martix) != 0:
+        if len(data_i['fea']) and data_i['purity'] != 0 and np.sum(-1 != attr_martix) != 0:
             gini_martix = cal_split_index(data_i['fea'], data_i['label'], attr_martix, numeric_fea, task_type)
             min_gini = num2coordinate(np.argmin(gini_martix), gini_martix.shape)
-            data[idx] = split(data_i['fea'], data_i['label'], type='gini', mini_gini=min_gini, attrs_martix=attr_martix,
-                              continuous_fea=numeric_fea[min_gini[0]],note=data_i['note'])
+            data[idx] = split(data_i['fea'], data_i['label'], type='CART', mini_gini=min_gini, attrs_martix=attr_martix,
+                              continuous_fea=numeric_fea[min_gini[0]], note=data_i['note'])
             attr_martix[min_gini[0], min_gini[1]] = -1
             attr_martix = adjust_att_martix(attr_matrix=attr_martix)
             CART(data[idx], attr_martix, numeric_fea, task_type)
     return data
+
+
+def max_gain_ratiom(args):
+    pass
 
 
 class Decison_Tree(object):
@@ -241,7 +246,7 @@ class Decison_Tree(object):
             info_gains = info_gain(x, y)
             max_info_gain = np.argmax(info_gains)
             max_info_gain_list[max_info_gain] = False
-            self.result = split(x, y, max_info_gain)
+            self.result = split(x, y, target=max_info_gain, type='id3')
             self.result = id_3(self.result, max_info_gain_list)
             return self.result
         elif self.type == 'C4_5':
@@ -250,7 +255,7 @@ class Decison_Tree(object):
             gain_ratios = gain_ratio(x, y) * info_gains > np.mean(info_gains)
             max_gain_ratio = np.argmax(gain_ratios)
             max_gain_ratio_list[max_gain_ratio] = False
-            self.result = split(x, y, max_gain_ratio)
+            self.result = split(x, y, target= max_gain_ratiom,type='C4_5')
             self.result = C4_5(self.result, max_gain_ratio_list)
             return self.result
         elif self.type == 'CART':
@@ -259,7 +264,7 @@ class Decison_Tree(object):
             print(attr_martix)
             gini_martix = cal_split_index(x, y, attr_martix, self.numeric_fea, self.task_type)
             min_gini = num2coordinate(np.argmin(gini_martix), gini_martix.shape)
-            self.result = split(x, y, type='gini', mini_gini=min_gini, attrs_martix=attr_martix,
+            self.result = split(x, y, type='CART', mini_gini=min_gini, attrs_martix=attr_martix,
                                 continuous_fea=self.numeric_fea[min_gini[0]])
             attr_martix[min_gini[0], min_gini[1]] = -1
             attr_martix = adjust_att_martix(attr_matrix=attr_martix)

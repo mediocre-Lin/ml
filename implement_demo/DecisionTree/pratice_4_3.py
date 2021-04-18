@@ -1,9 +1,9 @@
-# -*- encoding: utf-8 -*-
-"""
-@Time    : 2021/4/15 0:23
-@Author  : kesth
-@Software: PyCharm
-"""
+#!/usr/bin/python3
+# -*- coding:utf-8 -*-
+# Author: Kesth
+# createtime: 2021/4/18 13:14
+# Tool :PyCharm
+
 import os
 
 os.environ["PATH"] += os.pathsep + r'C:\Program Files\Graphviz\bin'
@@ -25,23 +25,18 @@ def tree_print(res):
             tree_print(res[i])
 
 
-demo_data = pd.read_csv('../../Data/demo2.csv', encoding='gbk')
-x = demo_data.iloc[:, :-1].values
+demo_data = pd.read_csv('../../Data/西瓜数据集3.0.csv', encoding='gbk')
+x = demo_data.iloc[:,:-3].values
 
-y = demo_data.iloc[:, -1].values
+y = demo_data.iloc[:,-1].values
 
 le = LabelEncoder()
 for i in range(x.shape[1]):
-    if i != 0:
-        x[:, i] = le.fit_transform(x[:, i])
-dt = Decison_Tree("CART", task_type='regression')
-res = dt.fit(x, y)
+        x[:,i] = le.fit_transform(x[:,i])
+y = le.fit_transform(y)
 print(x)
 print(y)
+dt = Decison_Tree("id3")
+res = dt.fit(x,y)
+
 tree_print(res)
-# dtc = DecisionTreeRegressor(splitter='best')
-# dtc.fit(x,y)
-# import pydotplus
-# dot_data = tree.export_graphviz(dtc, out_file=None)
-# graph = pydotplus.graph_from_dot_data(dot_data)
-# graph.write_pdf("demo.pdf")
