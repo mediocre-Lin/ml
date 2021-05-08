@@ -246,7 +246,7 @@ class Decison_Tree(object):
             info_gains = info_gain(x, y)
             max_info_gain = np.argmax(info_gains)
             max_info_gain_list[max_info_gain] = False
-            self.result = split(x, y, target=max_info_gain, type='id3')
+            self.result = split(x, y, target=max_info_gain, tree_type='id3')
             self.result = id_3(self.result, max_info_gain_list)
             return self.result
         elif self.type == 'C4_5':
@@ -261,7 +261,6 @@ class Decison_Tree(object):
         elif self.type == 'CART':
             self.numeric_fea = [continuous_fea_check(x[:, fea]) for fea in range(x.shape[1])]
             attr_martix = init_all_fea_attr(x, self.numeric_fea)
-            print(attr_martix)
             gini_martix = cal_split_index(x, y, attr_martix, self.numeric_fea, self.task_type)
             min_gini = num2coordinate(np.argmin(gini_martix), gini_martix.shape)
             self.result = split(x, y, tree_type='CART', mini_gini=min_gini, attrs_martix=attr_martix,
