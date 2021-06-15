@@ -5,7 +5,7 @@
 # Tool :PyCharm
 
 import numpy as np
-
+import copy
 
 # ID3
 def _cal_ent(y):
@@ -26,12 +26,12 @@ def _cal_ent_v(x, y):
             d_attr = x[(x == attr) & (y == l)]
             p_attr = len(d_attr) / num_attr
             ent_attr += 0 if p_attr == 0 else (num_attr / len(y)) * p_attr * (np.log2(len(d_attr) / num_attr))
-    return ent_attr
+    return -1*ent_attr
 
 
 def info_gain(x, y):
     Ent_D = _cal_ent(y)
-    gain_feas = [Ent_D + _cal_ent_v(x[:, fea], y) for fea in range(x.shape[1])]
+    gain_feas = [Ent_D - _cal_ent_v(x[:, fea], y) for fea in range(x.shape[1])]
     return np.array(gain_feas)
 
 
@@ -39,17 +39,18 @@ def info_gain(x, y):
 def _iv(x, y):
     attr_x = np.unique(x)
     IV = 0.0
-
     for attr in attr_x:
         num_attr = sum(attr == x)
         p_attr = (num_attr / len(y))
         IV += 0.0 if p_attr == 0 else p_attr * (np.log2(p_attr))
-    return IV
+    if IV == 0.0:
+        return 9999
+    return -1*IV
 
 
 def gain_ratio(x, y):
     Ent_D = _cal_ent(y)
-    gain_rat = [(Ent_D + _cal_ent_v(x[:, fea], y) / _iv(x[:, fea], y)) for fea in range(x.shape[1])]
+    gain_rat = [(Ent_D - _cal_ent_v(x[:, fea], y) / _iv(x[:, fea], y)) for fea in range(x.shape[1])]
     return np.array(gain_rat)
 
 
@@ -172,6 +173,7 @@ def split(x, y, attrs_martix=None, target=None, note='-->', tree_type='CART', mi
                  'purity': _reg_conv(y[tar_x != mini_gini[1]]),
                  'note': note + 'fea_' + str(mini_gini[0]) + ' != ' + str(mini_gini[1]) + '-->'})
 
+
     else:
         tar_x = x[:, target]
         branch_fea = np.unique(tar_x)
@@ -184,9 +186,9 @@ def split(x, y, attrs_martix=None, target=None, note='-->', tree_type='CART', mi
     return new_x
 
 
-def id_3(data, max_info_gains_list):
+def id_3(data, max_info_gains_lists):
     for idx, data_i in enumerate(data):
-        max_info_gain_list = max_info_gains_list
+        max_info_gain_list = copy.deepcopy(max_info_gains_lists)
         if data_i['purity'] != 1 and sum(max_info_gain_list) != 0:
             info_gains = info_gain(data_i['fea'], data_i['label']) * max_info_gain_list
             max_info_gain = np.argmax(info_gains)
@@ -196,22 +198,22 @@ def id_3(data, max_info_gains_list):
     return data
 
 
-def C4_5(data, max_gain_ratios_list):
+def C4_5(data, max_gain_ratios_lists):
     for idx, data_i in enumerate(data):
-        max_gain_ratio_list = max_gain_ratios_list
-        if data_i['purity'] != 1 and sum(max_gain_ratio_list) == 0:
-            info_gains = (info_gain(data_i['fea'], data_i['label']) * max_gain_ratio_list) > np.mean(info_gains)
-            gain_ratios = gain_ratio(data_i['fea'], data_i['label']) * info_gains
+        max_gain_ratio_list = copy.deepcopy(max_gain_ratios_lists)
+        if data_i['purity'] != 1 and sum(max_gain_ratio_list) != 0:
+            info_gains = (info_gain(data_i['fea'], data_i['label']) * max_gain_ratio_list)
+            gain_ratios = gain_ratio(data_i['fea'], data_i['label']) * (info_gains > np.mean(info_gains))
             max_gain_ratio = np.argmax(gain_ratios)
             max_gain_ratio_list[max_gain_ratio] = False
-            data[idx] = split(data_i['fea'], data_i['label'], target=max_gain_ratio, note=data_i['note'], tree_type='c45')
+            data[idx] = split(data_i['fea'], data_i['label'], target=max_gain_ratio, note=data_i['note'], tree_type='c4_5')
             C4_5(data[idx], max_gain_ratio_list)
     return data
 
 
-def CART(data, attrs_martix, numeric_fea, task_type):
+def CART(data, attrs_martixs, numeric_fea, task_type):
     for idx, data_i in enumerate(data):
-        attr_martix = attrs_martix
+        attr_martix = copy.deepcopy(attrs_martixs)
         # and data_i['purity'] != 1
         if len(data_i['fea']) and data_i['purity'] != 0 and np.sum(-1 != attr_martix) != 0:
             gini_martix = cal_split_index(data_i['fea'], data_i['label'], attr_martix, numeric_fea, task_type)
@@ -250,13 +252,13 @@ class Decison_Tree(object):
             self.result = id_3(self.result, max_info_gain_list)
             return self.result
         elif self.type == 'C4_5':
-            max_gain_ratio_list = [True for i in range(x.shape[1])]
+            max_gain_ratio_lists = [True for i in range(x.shape[1])]
             info_gains = info_gain(x, y)
-            gain_ratios = gain_ratio(x, y) * info_gains > np.mean(info_gains)
+            gain_ratios = gain_ratio(x, y) * (info_gains > np.mean(info_gains))
             max_gain_ratio = np.argmax(gain_ratios)
-            max_gain_ratio_list[max_gain_ratio] = False
-            self.result = split(x, y, target= max_gain_ratiom,type='C4_5')
-            self.result = C4_5(self.result, max_gain_ratio_list)
+            max_gain_ratio_lists[max_gain_ratio] = False
+            self.result = split(x, y, target=max_gain_ratio,tree_type='C4_5')
+            self.result = C4_5(self.result, max_gain_ratio_lists)
             return self.result
         elif self.type == 'CART':
             self.numeric_fea = [continuous_fea_check(x[:, fea]) for fea in range(x.shape[1])]

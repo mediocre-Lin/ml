@@ -51,8 +51,12 @@
     ![lda3](implement_demo/LDA/lda3.png)
     ![lda4](implement_demo/LDA/lda4.png)
     
-- [TODO:]决策树(Optim.tree.decison_tree)
-    ![demo_id3](implement_demo/DecisionTree/result_demo.jpg)
+- 决策树(Optim.tree.decison_tree)
+    the implement of ID3 in dataset(Data/demo_decision_Tree.xlsx) 
+    ![demo_id3](implement_demo/DecisionTree/demo2_id3.jpg)
+    the implement of C4.5 in dataset(Data/demo_decision_Tree.xlsx) 
+    ![demo_c4.5](implement_demo/DecisionTree/demo2_C4_5.png)
+
 
 - 引用:
 

@@ -12,7 +12,13 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import LabelEncoder
 from Optim.tree import Decison_Tree
 from sklearn import preprocessing
-
+def tree_print(res):
+    if isinstance(res, dict):
+        if len(res['fea']):
+            print(res)
+    else:
+        for i in range(len(res)):
+            tree_print(res[i])
 demo_data = pd.read_excel(r'../../Data/demo_decision_Tree.xlsx')
 x = demo_data.iloc[:,:-1].values
 
@@ -26,7 +32,5 @@ all = pd.DataFrame(np.hstack((x,y.reshape(-1,1))),columns=['年龄','收入','�
 print(all)
 dt = Decison_Tree("id3")
 res = dt.fit(x,y)
-for i in range(len(res)):
-    print(res[i])
-    print()
+tree_print(res)
 
